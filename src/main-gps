@@ -1,0 +1,31 @@
+#include <mbed.h>
+#include "GPS.h"
+
+Serial pc(A9, A10,9600);  // tx, rx
+Serial gpsSer(B10, B11,9600);  // tx, rx
+DigitalOut led(C13,0);
+GPS gps(gpsSer,led);
+
+
+
+int main() {
+    gps.init();
+    wait(1);
+    int32_t targ[] =  {507696740, 29835710,500000};
+    gps.RegisterTarget(targ);
+    int32_t gpsOutput[7]={0,0,0,0,0,0,0};
+    pc.printf("Hello World!\r\n");
+    while(1) {
+        led = !led;
+        if(gps.dataAvailable()){
+            int a = us_ticker_read();
+            gps.getData(gpsOutput);
+            int b = us_ticker_read();
+            pc.printf("data from gps : %d, %d, %d,%d, %d, %d, %d... %d micros\r\n",gpsOutput[0],gpsOutput[1],gpsOutput[2],gpsOutput[3],gpsOutput[4],gpsOutput[5],gpsOutput[6],(b-a));
+        }
+    }
+
+
+}
+
+

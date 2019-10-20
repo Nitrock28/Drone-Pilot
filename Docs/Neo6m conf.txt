@@ -1,0 +1,55 @@
+set output : 31.9.2 Set Message Rate(s)
+	Length (8) must be 2 bytes little endian : 0x08 0x00
+	rate[6] is the rate on each of the 6 ports (DDC=I2C, USART1 USART2, USB, SPI, Reserved), 0 is disabled, other is output every x gps poll.
+
+	Checksum : 
+	CK_A = 0, CK_B = 0 
+	For(I=0;I<N;I++) {
+		 CK_A = CK_A + Buffer[I]
+		 CK_B = CK_B + CK_A 
+	}
+	not counting the first 0xB5 0x62
+
+		0xB5 0x62 0x06 0x01 0x08 0x00 msgClass msgID rate[6] CK_A CK_B
+		
+		1Hz on usart 1 : speed and position	
+		0xB5 0x62 0x06 0x01 0x08 0x00 0x01 0x02 0x01 0x00 0x00 0x00 0x00 0x00 0x13 0xBF
+		0xB5 0x62 0x06 0x01 0x08 0x00 0x01 0x12 0x01 0x00 0x00 0x00 0x00 0x00 0x23 0x2F
+		
+		
+		total per full trame : 2*8+28+36 = 80 bytes -> 0.066 s at 9600 baud + stop bits and parity
+		
+		
+		
+		
+		
+		
+35.7  : NAV-POSLLH position data (0x01 0x02)
+0xB5 0x62 0x01 0x02 0x1C 0x00 [28 bytes] CK_A CK_B
+
+0	U4	-		Millisecond 	Time of Week
+4	I4	1e-7	deg				Longitude ~=cm accuracy
+8	I4	1e-7	deg				Latitude
+12	I4	-		mm				Height above Ellipsoid
+16	I4	-		mm				Height above mean sea level
+20	U4	-		mm				Horizontal Accuracy Estimate
+24	U4	-		mm				Vertical Accuracy Estimate
+
+
+
+35.15 : NAV-VELNED speed data (0x01 0x12)
+0xB5 0x62 0x01 0x12 0x24 0x00 [36 bytes] CK_A CK_B
+
+0	U4	-		ms				GPS Millisecond Time of Week
+4	I4	-		cm/s			NED north velocity
+8	I4	-		cm/s			NED east velocity
+12	I4	-		cm/s			NED down velocity
+16	U4	-		cm/s			Speed (3-D)
+20	U4	-		cm/s			Ground Speed (2-D)
+24	I4	1e-5	deg				Heading of motion 2-D
+28	U4	-		cm/s			Speed Accuracy Estimate
+32	U4	1e-5	deg				Course / Heading Accuracy Estimate
+
+attach callback to 
+
+

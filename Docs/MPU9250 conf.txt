@@ -1,0 +1,289 @@
+MPU 9250 config
+
+
+// self test -> check docs ?
+00	0	SELF_TEST_X_GYRO		R/W			xg_st_data[7:0]
+01	1	SELF_TEST_Y_GYRO		R/W			yg_st_data[7:0]
+02	2	SELF_TEST_Z_GYRO		R/W			zg_st_data[7:0]
+0D	13	SELF_TEST_X_ACCEL		R/W			XA_ST_DATA[7:0]
+0E	14	SELF_TEST_Y_ACCEL		R/W			YA_ST_DATA[7:0]
+0F	15	SELF_TEST_Z_ACCEL		R/W			ZA_ST_DATA[7:0]
+
+// gyro offset, actual offset in °/s should be 4*G_OFFSET/131
+13	19	XG_OFFSET_H				R/W			X_OFFS_USR[15:8] 
+14	20	XG_OFFSET_L				R/W			X_OFFS_USR[7:0]
+15	21	YG_OFFSET_H				R/W			Y_OFFS_USR[15:8]
+16	22	YG_OFFSET_L				R/W			Y_OFFS_USR[7:0]
+17	23	ZG_OFFSET_H				R/W			Z_OFFS_USR[15:8]
+18	24	ZG_OFFSET_L				R/W			Z_OFFS_USR[7:0]
+
+Sample rate : output rate of data is Internal_Sample_Rate / (1 + SMPLRT_DIV) for every sensor (even on aux I2C?)
+19	25	SMPLRT_DIV				R/W			SMPLRT_DIV[7:0]
+
+Fifo mode : 0: stop filling when full; 1 : discard oldest data
+EXT_SYNC_SET : External pin sampling-> 0 to disable
+DLP_config : config for gyro and temp, if not bypassed by FChoice see table in doc
+1A	26	CONFIG					R/W			-	FIFO_MODE	EXT_SYNC_SET[2:0]	DLPF_CFG[2:0]
+
+Cten : self tests values
+Gyro full scale = 250*2^FS, LSB of data is 2^FS/131 °/s
+FChoice : bypass of DLPF, reversed!, -> 00 for active lowpass
+1B	27	GYRO_CONFIG				R/W			XGYRO_Cten	YGYRO_Cten	ZGYRO_Cten	GYRO_FS_SEL [1:0]	-	FCHOICE_B[1:0]
+
+rates for Gyro and temp sensors: 
+
+FCHOICE_B	DLPF_CFG	BW		Delay	FS	BHth	DelayTh
+x	1		x			8800	0.064	32	4000	0.04
+1	0		x			3600	0.11	32	4000	0.04
+0	0		0			250		0.97	8	4000	0.04
+0	0		1			184		2.9		1	188		1.9
+0	0		2			92		3.9		1	98		2.8
+0	0		3			41		5.9		1	42		4.8
+0	0		4			20		9.9		1	20		8.3
+0	0		5			10		17.85	1	10		13.4
+0	0		6			5		33.48	1	5		18.6
+0	0		7			3600	0.17	8	4000	0.04
+
+
+_st_en accel self test values 
+ACCEL_FS_SEL : full scale : 2^FS*2 g  LSB of data is 2^FS/16384 g
+1C	28	ACCEL_CONFIG			R/W			ax_st_en	ay_st_en	az_st_en	ACCEL_FS_SEL[1:0]	-
+
+ACCEL_FCHOICE_B : opposite of FChoice, set to 1 to bypass DLPF (4khz, 1kHz BW)
+A_DLPF_CF : Low pass filter value, data rate is 1kHz for all cases, BW from 5 to 420Hz
+1D	29	ACCEL_CONFIG 2			R/W			-	ACCEL_FCHOICE_B		A_DLPF_CFG
+
+rates for accelrometers
+ACCFCHOICE_B	DLPF	BW		FS	filter	delay	Noise
+1				x		1,046 	4 	Dec1	0.503	300
+0				0		218.1 	1 	DLPF	1.88	300
+0				1		218.1 	1 	DLPF	1.88	300
+0				2		99 		1 	DLPF	2.88	300
+0				3		44.8	1 	DLPF	4.88	300
+0				4		21.2 	1 	DLPF	8.87	300
+0				5		10.2 	1 	DLPF	16.83	300
+0				6		5.05 	1 	DLPF	32.48	300
+0				7		420 	1 	Dec2	1.38	300
+
+Low power accel config
+1E	30	LP_ACCEL_ODR			R/W			-	Lposc_clksel [3:0]2
+
+Wake on motion interrupt pin control
+1F	31	WOM_THR					R/W			WOM_Threshold [7:0]
+
+Enable fifo output : output to fifo at sample rate configured for each channel, independantly toggled (chan 3 I2C in next register
+23	35	FIFO_EN					R/W			TEMP_FIFO_EN	GYRO_XOUT	GYRO_YOUT	GYRO_ZOUT	ACCEL SLV2	SLV1	SLV0
+
+I2C control : 
+SLV_3_FIFO_EN : Slave3 data to fifo
+I2C_MST_P_NSR : Stop or reset between slave change (1=stop)
+I2C_MST_CLK : clock speed of I2C; default is 348kHz
+24	36	I2C_MST_CTRL			R/W			MULT_MST_EN		WAIT _FOR_ES	SLV_3_FIFO_EN		I2C_MST_P_NSR		I2C_MST_CLK[3:0]
+
+I2c slave 0 comm
+Slave I2C address(ID), first bit is 1=read, 0=write
+25	37	I2C_SLV0_ADDR			R/W			I2C_SLV0_RNW	I2C_ID_0 [6:0]
+/Slave register for start of reading
+26	38	I2C_SLV0_REG			R/W			I2C_SLV0_REG[7:0]
+I2C_SLV0_EN  : enable data reading on the slave and output to the relevant register
+I2C_SLV0_BYTE_SW : swap bytes pairwise (pay attention to bytes address, detail in docs
+I2C_SLV0_REG_DIS : Only read or write data, no write to register ???
+I2C_SLV0_GRP : 		determines how the bytes are grouped pairwise. 0-> 0 and 1 together, 1-> 1 and 2 together
+I2C_SLV0_LENG : Number of bytes to read from sensor
+27	39	I2C_SLV0_CTRL			R/W			I2C_SLV0_EN		I2C_SLV0_BYTE_SW		I2C_SLV0_REG_DIS	I2C_SLV0_GRP	I2C_SLV0_LENG[3:0]
+
+Same for slave 1
+28	40	I2C_SLV1_ADDR			R/W			I2C_SLV1 _RNWI2C_ID_1 [6:0]
+2941I2C_SLV1_REGR/WI2C_SLV1_REG[7:0]
+2A42I2C_SLV1_CTRL R/WI2C_SLV1_ENI2C_SLV1_BYTE_SWI2C_SLV1_REG_DISI2C_SLV1_GRPI2C_SLV1_LENG[3:0]
+
+Same for slave 2
+2B43I2C_SLV2_ADDRR/WI2C_SLV2 _RNWI2C_ID_2 [6:0]
+2C44I2C_SLV2_REGR/WI2C_SLV2_REG[7:0]
+2D45I2C_SLV2_CTRLR/WI2C_SLV2_ENI2C_SLV2_BYTE_SWI2C_SLV2_REG_DISI2C_SLV2_GRPI2C_SLV2_LENG[3:0]
+
+Same for slave 3
+2E46I2C_SLV3_ADDRR/WI2C_SLV3 _RNWI2C_ID_3 [6:0]
+2F47I2C_SLV3_REGR/WI2C_SLV3_REG[7:0]
+3048I2C_SLV3_CTRLR/WI2C_SLV3_ENI2C_SLV3_BYTE_SWI2C_SLV3_REG_DISI2C_SLV3_GRPI2C_SLV3_LENG [3:0]
+
+Same for slave 4 , slave 4 can write data do specific registers using the DO register data from the sensors goes to DI.
+31	49	I2C_SLV4_ADDR			R/W		I2C_SLV4_RNWI2C_ID_4[6:0]
+32	50	I2C_SLV4_REG			R/W		I2C_SLV4_REG[7:0]
+33	51	I2C_SLV4_DO				R/W		I2C_SLV4_DO[7:0]
+34	52	I2C_SLV4_CTRL			R/W		I2C_SLV4_EN		SLV4_DONE_INT_EN	I2C_SLV4 _REG_DIS	I2C_MST_DLY[4:0]
+35	53	I2C_SLV4_DI				R		I2C_SLV4_DI[7:0]
+
+I2C stus : If enabled, any of those bits causes an interrupt, FSync is used for pass through(set high from external interrupt, causes an interrupt)
+36	54	I2C_MST_STATUS			R		PASS_THROUGH	I2C_SLV4 _DONE		I2C_LOST _ARB	I2C_SLV4_NACK	I2C_SLV3_NACK	I2C_SLV2_NACK	I2C_SLV1_NACK	I2C_SLV0 _NACK
+
+config ofinterrupt pin 
+BYPASS_EN controls the I2C bypass mode
+37	55	INT_PIN_CFG 			R/W		ACTL	OPEN	LATCH_INT_EN	INT_ANYRD_2CLEAR	ACTL_FSYNC	FSYNC_INT_MODE_EN	BYPASS_EN	-
+interrupt control : which event triggers the interrupt pin
+38	56	INT_ENABLE				R/W		-	WOM_EN	-	FIFO_OFLOW_EN	FSYNC_INT_EN	-	-	RAW_RDY_EN
+interrupt staus for each event
+3A	58	INT_STATUS				R		-	WOM_INT	-	FIFO_OFLOW_INT	FSYNC_INT		-	-	RAW_DATA_RDY_INT
+
+output registers beeing updated at the set rate
+3B	59	ACCEL_XOUT_H			R		ACCEL_XOUT_H[15:8]
+3C	60	ACCEL_XOUT_L			R		ACCEL_XOUT_L[7:0]
+3D	61	ACCEL_YOUT_H			R		ACCEL_YOUT_H[15:8]
+3E	62	ACCEL_YOUT_L			R		ACCEL_YOUT_L[7:0]
+3F	63	ACCEL_ZOUT_H			R		ACCEL_ZOUT_H[15:8]
+40	64	ACCEL_ZOUT_L			R		ACCEL_ZOUT_L[7:0]
+
+41	65	TEMP_OUT_H				R		TEMP_OUT_H[15:8]
+42	66	TEMP_OUT_L				R		TEMP_OUT_L[7:0]
+
+43	67	GYRO_XOUT_H				R		GYRO_XOUT_H[15:8]
+44	68	GYRO_XOUT_L				R		GYRO_XOUT_L[7:0]
+45	69	GYRO_YOUT_H				R		GYRO_YOUT_H[15:8]
+46	70	GYRO_YOUT_L				R		GYRO_YOUT_L[7:0]
+47	71	GYRO_ZOUT_H				R		GYRO_ZOUT_H[15:8]
+48	72	GYRO_ZOUT_L				R		GYRO_ZOUT_L[7:0]
+
+all slave output in order (0 then 1 then 2 then 3) their data in these registers, aording to the number set in each slaves config.
+evn if a slave doesn't output data, the order and numbering i kept untill all slaves are disabled or an I2C master reset
+Slav 4 outputs in a specifi rgister one at a time.
+49	73	EXT_SENS_DATA_00		R		EXT_SENS_DATA_00[7:0]
+4A	74	EXT_SENS_DATA_01		R		EXT_SENS_DATA_01[7:0]
+4B	75	EXT_SENS_DATA_02		R		EXT_SENS_DATA_02[7:0]
+4C	76	EXT_SENS_DATA_03		R		EXT_SENS_DATA_03[7:0]
+4D	77	EXT_SENS_DATA_04		R		EXT_SENS_DATA_04[7:0]
+4E	78	EXT_SENS_DATA_05		R		EXT_SENS_DATA_05[7:0]
+4F	79	EXT_SENS_DATA_06		R		EXT_SENS_DATA_06[7:0]
+50	80	EXT_SENS_DATA_07		R		EXT_SENS_DATA_07[7:0]
+51	81	EXT_SENS_DATA_08		R		EXT_SENS_DATA_08[7:0]
+52	82	EXT_SENS_DATA_09		R		EXT_SENS_DATA_09[7:0]
+53	83	EXT_SENS_DATA_10		R		EXT_SENS_DATA_10[7:0]
+54	84	EXT_SENS_DATA_11		R		EXT_SENS_DATA_11[7:0]
+55	85	EXT_SENS_DATA_12		R		EXT_SENS_DATA_12[7:0]
+56	86	EXT_SENS_DATA_13		R		EXT_SENS_DATA_13[7:0]
+57	87	EXT_SENS_DATA_14		R		EXT_SENS_DATA_14[7:0]
+58	88	EXT_SENS_DATA_15		R		EXT_SENS_DATA_15[7:0]
+59	89	EXT_SENS_DATA_16		R		EXT_SENS_DATA_16[7:0]
+5A	90	EXT_SENS_DATA_17		R		EXT_SENS_DATA_17[7:0]
+5B	91	EXT_SENS_DATA_18		R		EXT_SENS_DATA_18[7:0]
+5C	92	EXT_SENS_DATA_19		R		EXT_SENS_DATA_19[7:0]
+5D	93	EXT_SENS_DATA_20		R		EXT_SENS_DATA_20[7:0]
+5E	94	EXT_SENS_DATA_21		R		EXT_SENS_DATA_21[7:0]
+5F	95	EXT_SENS_DATA_22		R		EXT_SENS_DATA_22[7:0]
+60	96	EXT_SENS_DATA_23		R		EXT_SENS_DATA_23[7:0]
+
+those registers are for data output when write mode is selectd for the slave
+63	99	I2C_SLV0_DO				R/W		I2C_SLV0_DO[7:0]
+64	100	I2C_SLV1_DO				R/W		I2C_SLV1_DO[7:0]
+65	101	I2C_SLV2_DO				R/W		I2C_SLV2_DO[7:0]
+66	102	I2C_SLV3_DO				R/W		I2C_SLV3_DO[7:0]
+
+
+enable delay on individual slaves, data access is skipped I2C_MST_DLY times 
+67	103	I2C_MST_DELAY_CTRL		R/W		DELAY_ES _SHADOW--I2C_SLV4 _DLY_ENI2C_SLV3 _DLY_ENI2C_SLV2 _DLY_ENI2C_SLV1 _DLY_ENI2C_SLV0 _DLY_EN
+
+reset sensors digital paths?
+68	104	SIGNAL_PATH_RESET		R/W		-	-	-	-	-	GYRO_RST	ACCEL_RST	TEMP_RST
+
+ACCEL_FCHOICE_B Enables wake on motion
+ACCEL_FCHOICE_B only use 1
+69	105	MOT_DETECT_CTRL			R/W		ACCEL_INTEL_EN	ACCEL_INTEL_MODE	-	-	-
+
+FIFO_EN: 0 disabls fifo access from serial; DMP ould still write to FIFO
+I2C_MST_EN: 0 disable I2 master mode, external I2 driven by I2c pins from outside
+I2C_IF_DIS:disabl I2C slave -> SPI only Set this 
+FIFO_RST : Rset the FIFO, cleard after 1 clock cycle
+I2C_MST_RST : Rset the I2 slave bus, cleard after 1 clock cycle
+SIG_COND_RST : resets all sensors signal path and registers, and clears itself.
+6A	106	USER_CTRL				R/W		-	FIFO_EN	I2C_MST_EN	I2C_IF_DIS	-	FIFO_RST	I2C_MST_RST	SIG_COND_RST
+
+H_RESET : Rset sensor to default, autolears
+SLEEP : sets chip in sleep mode
+Cycle mode for Accel, Waking up and sleeping again
+GYRO_STANDBY Gyro still on but low power, fast re enable to read data
+PD_PTAT power down the voltage regulators
+CLKSEL select the clock source : 0 or 6-> oscillator | 7 ->stop | oter -> best source
+6B	107	PWR_MGMT_1				R/W		H_RESET		SLEEP	CYCLE	GYRO_STANDBY	PD_PTAT		CLKSEL[2:0]
+
+disable individual axis to spare power
+6C	108	PWR_MGMT_2				R/W		-	DIS_XA	DIS_YA	DIS_ZA	DIS_XG	DIS_YG	DIS_ZG
+
+Fifo count, must read High befor low 
+72	114	FIFO_COUNTH				R/W		-	FIFO_CNT[12:8]
+73	115	FIFO_COUNTL 			R/W		FIFO_CNT[7:0]
+
+FIFO data, in the same order as bytes 59-96 when enabled
+74	116	FIFO_R_W				R/W		D[7:0]
+
+Id of the chip, always equal to 0x71=113
+75	117	WHO_AM_I				R		WHOAMI[7:0]
+
+accelerometers offsets 15 bit with lsb of data always 0.98 mg
+77	119	XA_OFFSET_H				R/W		XA_OFFS [14:7]
+78	120	XA_OFFSET_L				R/W		XA_OFFS [6:0]-
+7A	122	YA_OFFSET_H				R/W		YA_OFFS [14:7]
+7B	123	YA_OFFSET_L				R/W		YA_OFFS [6:0]-
+7D	125	ZA_OFFSET_H				R/W		ZA_OFFS [14:7]
+7E	126	ZA_OFFSET_L				R/W		ZA_OFFS [6:0]-
+
+
+AK8963 is on the I2C slave bus (addr = 0x0C)--------------------------------------------------
+
+Registers from 0x00 to 0x12 ; 0x0D, 0x0E,0x0F are readable only in FUSE mode, all the rest are serial readable with auto register incrementation (burst)
+
+When reading data in from the sensor, always read from bytes 0x03 to 0x9H, the last byte read signals end of read to the sensor.
+
+Read only registers
+00H		WIA		0		1		0		0		1		0		0		0
+01H		INFO	INFO7	INFO6	INFO5	INFO4	INFO3	INFO2	INFO1	INFO0
+02H		ST1		0		0		0		0		0		0		DOR		DRDY
+03H		HXL		HX7		HX6		HX5		HX4		HX3		HX2		HX1		HX0
+04H		HXH		HX15	HX14	HX13	HX12	HX11	HX10	HX9		HX8
+05H		HYL		HY7		HY6		HY5		HY4		HY3		HY2		HY1		HY0
+06H		HYH		HY15	HY14	HY13	HY12	HY11	HY10	HY9		HY8
+07H		HZL		HZ7		HZ6		HZ5		HZ4		HZ3		HZ2		HZ1		HZ0
+08H		HZH		HZ15	HZ14	HZ13	HZ12	HZ11	HZ10	HZ9		HZ8
+09H		ST2		0		0		0		BITM	HOFL	0		0		0
+
+Write/read Registers
+
+0AH		CNTL1	0		0		0		BIT		MODE3	MODE2	MODE1	MODE0
+0BH		CNTL2	0		0		0		0		0		0		0		SRST
+0CH		ASTC	-		SELF	-		-		-		-		-		-
+0DH		TS1		-		-		-		-		-		-		-		-
+0EH		TS2		-		-		-		-		-		-		-		-	
+0FH		I2CDIS	I2CDIS7	I2CDIS6	I2CDIS5	I2CDIS4	I2CDIS3	I2CDIS2	I2CDIS1	I2CDIS0
+
+Read-only Registers
+10H		ASAX	COEFX7	COEFX6	COEFX5	COEFX4	COEFX3	COEFX2	COEFX1	COEFX0
+11H		ASAY	COEFY7	COEFY6	COEFY5	COEFY4	COEFY3	COEFY2	COEFY1	COEFY0
+12H		ASAZ	COEFZ7	COEFZ6	COEFZ5	COEFZ4	COEFZ3	COEFZ2	COEFZ1	COEFZ0
+
+
+WIA : Who am I, always 0x48
+DOR : 1 if some data has been skipped
+DRDY : data is ready in single measurement or self test mode.
+0x03 to 0x08 : measurement output registers, data is stored as a signed, little endian 16bit integer, with a LSB value of 0.15µT [-4912µT(8008) to 4912µT(7FF8)]
+BITM : 0 is 14bit output, 1 is 16 bit output
+HOFL : Magnetic sensor overflow for the last measurement.
+BIT : 0 is 14bit output, 1 is 16 bit output
+MODE[3:0]: Operation mode setting
+	"0000": Power-down mode -> sensor in this mode at startup. To change between modes pass by this mode. wait at least 100µs before transiting to another mode
+	"0001": Single measurement mode -> Sensor is read then goes back to power down(0000)
+	"0010": Continuous measurement mode 1 -> measures at 8 Hz in continuous mode
+	"0110": Continuous measurement mode 2 -> measures at 100 Hz in continuous mode
+	"0100": External trigger measurement mode -> measures each time external trigger rises
+	"1000":	Self-test mode -> self test and output result, then goes back to power down(0000)
+	"1111": Fuse ROM access mode ->goes in Fuse ROM mode to access specific registers
+	Other code settings are prohibited
+SRST : reset all the registers, this bit is also reset.
+SELF : activate the self test magnetic field generation
+TS1 and TS2 : Do not use
+I2CDIS : Write 00011011 to disable I2C, reset chip to re enable
+ASA XYZ : Magnetic sensor sensitivity adjustment value, factory written. use this to adjust the read data?
+
+Hadj = H*((ASA-128)*0.5/128+1)
+	H is the vlue output in registers, ASA is the adjustment (as uint8?) values and Hadj is the adjusted output value
+	-> adjustments from 0.5*H to 1.5*H
+
+
+

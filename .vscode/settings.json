@@ -1,0 +1,9 @@
+{
+    "terminal.integrated.env.linux": {
+        "PATH": "/home/corentin/.platformio/penv/bin:/home/corentin/.platformio/penv:/home/corentin/.local/bin:/home/corentin/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games",
+        "PLATFORMIO_CALLER": "vscode"
+    },
+    "files.associations": {
+        "cmath": "cpp"
+    }
+}
