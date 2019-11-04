@@ -1,0 +1,70 @@
+The PIFF has the folowing basics : 
+
+    Proportionnal gain, proportionnal to current error ()
+    Integral gain, proportional to integration of ERROR over time.
+    Feed Forward gain, output is proportionnal to the command disregarding the current sensor value
+    The gains should not be defined constant, a live modification should be possible. when changing the I gain, the current integration value should be adapted as to generate the same correction
+    
+
+
+In the project, these are the various PIFF used : 
+
+
+ROLL rate :
+    Input - setpoint of requested rotation rate on ROLL axis
+    Measurement - Gyro on roll axis
+    Output - directly hooked to the ailerons command (control the rotation rate on that axis).
+    remarks : 
+        If p and I are 0, we are in passtrough mode. FF feeds the output based on Input
+        this controller can be disabled at runtime: 
+            disable : P=0,I=0,FF = FFManu.
+            enable : P=P,I=I,FF=FFAuto, integral term = ((FFManu-FFauto)*SPLast-P*ERRLast)/I
+
+BANK angle:
+    Input - setpoint of requested bank angle (from autopilot or manual control in angle mode)
+    Measurement - Roll angle from Madgwick scheme
+    output - needed rotation rate, hooked to the ROLL PIFF
+    remarks : 
+        this should be a limited P controller (I and FF set to 0) request rotation when bank angle is not as requested.
+
+HEADING angle
+    Input - setpoint of requested heading angle (from GPS position and wayponts)
+    Measurement - current heading angle from GPS system
+    output - needed bank angle to turn the craft in the correct orientation
+    remarks : 
+        this should be a limited P controller (I and FF set to 0) request rotation when direction is not as requested.
+
+PITCH rate :
+    Input - setpoint of requested rotation rate on PITCH axis
+    Measurement - Gyro on pitch axis
+    Output - directly hooked to the elevons command (control the rotation rate on that axis).
+    remarks : 
+        If p and I are 0, we are in passtrough mode. FF feeds te output based on Input
+
+PITCH angle:
+    Input - setpoint of requested pitch angle (from autopilot or manual control in angle mode)
+    Measurement - pitch angle from Madgwick scheme
+    output - needed rotation rate, hooked to the Pitch rate PIFF
+    remarks : 
+        this should be a limited P controller (I and FF set to 0) request rotation when pitch angle is not as requested.
+
+ALTITUDE control
+    Input - setpoint of requested altitude (from wayponts)
+    Measurement - current altitude from GPS system
+    output - needed pitch angle to raise or lower the altitude
+    remarks : 
+        this should be a limited P controller (I and FF set to 0) request rotation when altitude change is needed.
+        This will also conrol the throttle value, some kind of LUT or curve translating requested pitch angle to needed throttle could be used.
+
+
+*some of the P only controllers would be simplified to only one operation at each evaluation in the code. to eliminate the need for the bulky class for each of them.
+*those PIFF are disabled when the craft is outside a normal orientation, basically when the Z vector is too far out of the nominal orientation. in those case, a simple recuperation scheme is used to get back to a nominal attitude.
+    basically, if nose down-> throttle medium and pitch up.
+               if nose up  -> full throttle+pitch down.
+               else if bank not in nominal range, full ailerons to recover, medium throttle. 
+
+* there are 4 modes of control : 
+    full auto : GPS based control, with waypoints and RTH sceme based on textfile on SD card. RTH can be activated by SMS. ALL PIFFs are active, throtthle is managed by the controller.
+    angle mode: Remote control sets the pitch and roll angles, the two lower levels controllers on each axis handle the controls.(manual throttle)
+    rate mode : Remote control sets the pitch and roll rates, lowest level controller on each axis handle the controls. (manual throttle)
+    full manual : Remote control sets the controls values, the program only does the mixing of axes. (manual throttle)
