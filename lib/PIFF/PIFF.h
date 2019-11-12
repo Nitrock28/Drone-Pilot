@@ -9,7 +9,7 @@ class PIFF
     private:
         float _P
         float _I
-        float _D
+        float _FF
     public:
         PIFF();
 }

@@ -11,7 +11,8 @@ float data[9];
 float angles[3];
 uint32_t CLKH = 0, CLKL=0, old=0;
 
-//gets the time in µs since startup, must be called at least every 30 ms 
+//gets the time in µs since startup, must be called at least every 30 ms. 
+//Loops every 1h 11m 35s
 unsigned int getTime(){
     CLKL=us_ticker_read();
     if(CLKL<old){

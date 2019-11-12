@@ -1,0 +1,27 @@
+The gps singleton communicates with the neo6m gps module trough serial.
+it also handles waypoint navigation and can generae the following data :
+
+todo : 
+    -watchdog for last read fom GPS.
+    -check precision and failsafe if too bad
+
+
+interface : 
+init : initialize the communication to GPS module through serial.
+dataAvailable : returns true if a complete message is available to be read.
+RegisterHome : register the home position as the first target. by default, after the last target is reached, the RTH is enabled (see target definition further).
+RegisterTarget : regiter the next target. this has to be called sequentially at the start of the program. up to MAXTARGETNUM(50) targets can be registered.
+    the NextTarget argument indicates the following target in the list. this allows to do (infinite) loops of targets. set to 
+        -1 for next target in logical order (e.g. add targets sequentially with -1 as next target will cycle trough them and return to home afterwards.)
+        -2 landing at target. in that mode, the lattituda and longitude of the target are tracked, but the craft will be set in a descent mode, no power/ nose slightly down. use the target before that to prepare the flight direction.
+        any other value sets the wanted next target.
+
+getNAV : function to call to obtain the navigation information from gps. There are 3 modesfor GPS navigation : 
+
+0 : normal mode we use the known origin for the target. this modes tries to follow the line joining two targets while navigating. to do so : 
+    when the next target is activated, the nominal heading from start to end is registered. when getting the poition and heading of the craft, a compensation is applied to try and maintain the line.
+    basically, the wanted direction 
+1 : Direct navigation; used for RTH mode. only the target point is used, the heading is maintained straight towards the target.
+2 : Landing. in this mode, the normal mode is used, but the landing is signalled to the controllr to stop the motor and try to keep a constant downward velocity. No altitude error is output.
+
+

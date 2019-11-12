@@ -4,6 +4,13 @@
         "PLATFORMIO_CALLER": "vscode"
     },
     "files.associations": {
-        "cmath": "cpp"
+        "cmath": "cpp",
+        "mstd_iterator": "cpp",
+        "*.tpp": "cpp",
+        "array": "cpp",
+        "mstd_atomic": "cpp",
+        "mstd_type_traits": "cpp",
+        "string": "cpp",
+        "string_view": "cpp"
     }
 }
