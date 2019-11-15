@@ -4,13 +4,14 @@
 #include <mbed.h>
 
 
-namespace GPS
+namespace SIM
 {
-        void init(Serial& gpsBus);
+    void init(Serial& simBus);
 
-        bool dataAvailable(void);
-        void getData(int32_t* outputTable);
-        void RegisterTarget(int32_t* inputTable);
+    bool dataAvailable(void);
+    void getData(int32_t* outputTable);
+    void RegisterTarget(int32_t* inputTable);
+    
 };
 
 #endif
