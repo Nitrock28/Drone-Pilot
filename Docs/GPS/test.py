@@ -27,8 +27,8 @@ def displayScene( wps, pos, angle):
 
         cp = (int((pos[1]/1000+100)*imScale),int((1400-pos[0]/1000-100)*imScale))
         cp2 = (int(cp[0]+10*math.sin(angle*DEG2RAD)),int(cp[1]-10*math.cos(angle*DEG2RAD)))
-        cv2.circle(image,cp,int(5*imScale),(0, 0, 255),-1)
-        cv2.line(image,cp,cp2,(0,0,255),1)
+        cv2.circle(image,cp,int(5*imScale),(255, 128, 0),-1)
+        cv2.line(image,cp,cp2,(255,128,0),1)
         cv2.imshow('render',image)
         cv2.waitKey(0)
 
@@ -39,7 +39,7 @@ def displayScene( wps, pos, angle):
 wps = [[0,0],
         [1000000,0],
         [1200000,900000],
-        [100000,1000000]]
+        [500000,1150000]]
 
 for i in range(1,len(wps)):
     d,a = distAndHeadingPlane(wps[i-1][0],wps[i-1][1],wps[i][0],wps[i][1])
@@ -51,7 +51,7 @@ trunRate=0.0
 
 gpsUpdateCount = 100 # refresh period of gps in timesteps
 
-wind=[60*278,0] #mm/s
+wind=[0*278,70*278] #mm/s
 
 pos = wps[0].copy()
 orient = 0#physical orientation of the nose of the craft
