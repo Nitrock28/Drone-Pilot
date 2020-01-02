@@ -28,7 +28,7 @@ namspace SIM{
     namespace{
         
     }
-    int GSM::readBuffer(char *buffer,int count)
+    readBuffer(char *buffer,int count)
     {
         int i = 0;
         timeCnt.start();  // start timer
@@ -60,12 +60,12 @@ namspace SIM{
         }
     }
     
-    void GSM::sendCmd(char *cmd)
+    void sendCmd(char *cmd)
     {
         gprsSerial.puts(cmd);
     }
     
-    int GSM::waitForResp(char *resp, int timeout)
+    int waitForResp(char *resp, int timeout)
     {
         int len = strlen(resp);
         int sum=0;
@@ -92,18 +92,18 @@ namspace SIM{
         return 0;
     }
     
-    int GSM::sendCmdAndWaitForResp(char *cmd, char *resp, int timeout)
+    int sendCmdAndWaitForResp(char *cmd, char *resp, int timeout)
     {
         sendCmd(cmd);
         return waitForResp(resp,timeout);
     }
     
-    int GSM::powerCheck(void)
+    int powerCheck(void)
     {
         return sendCmdAndWaitForResp("AT\r\n", "OK", 2);    
     }
     
-    int GSM::init(void)
+    int init(void)
     {
         for(int i = 0; i < 3; i++){
             sendCmdAndWaitForResp("AT\r\n", "OK", DEFAULT_TIMEOUT);
@@ -121,7 +121,7 @@ namspace SIM{
         return 0;
     }
     
-    int GSM::checkSIMStatus(void)
+    int checkSIMStatus(void)
     {
         char gprsBuffer[30];
         int count = 0;
@@ -142,7 +142,7 @@ namspace SIM{
         return 0;
     }
     
-    int GSM::checkSignalStrength(void)
+    int checkSignalStrength(void)
     {
         char gprsBuffer[100];
         int index,count = 0;
@@ -162,7 +162,7 @@ namspace SIM{
         return index;
     }
     
-    int GSM::settingSMS(void)
+    int settingSMS(void)
     {
         if(0 != sendCmdAndWaitForResp("AT+CNMI=2,2\r\n", "OK", DEFAULT_TIMEOUT)) {
             return -1;
@@ -173,7 +173,7 @@ namspace SIM{
         return 0;
     }
     
-    int GSM::sendSMS(char *number, char *data)
+    int sendSMS(char *number, char *data)
     {
         char cmd[64];
         while(gprsSerial.readable()) {
@@ -189,7 +189,7 @@ namspace SIM{
         return 0;
     }
     
-    int GSM::readSMS(char *message, int index)
+    int readSMS(char *message, int index)
     {
         int i = 0;
         char gprsBuffer[100];
@@ -210,7 +210,7 @@ namspace SIM{
         return 0;
     }
     
-    int GSM::deleteSMS(int index)
+    int deleteSMS(int index)
     {
         char cmd[32];
         snprintf(cmd,sizeof(cmd),"AT+CMGD=%d\r\n",index);
@@ -218,7 +218,7 @@ namspace SIM{
         return 0;
     }
     
-    int GSM::getSMS(char* message)
+    int getSMS(char* message)
     {
         if(NULL != messageBuffer) {
             strncpy(message,messageBuffer,SMS_MAX_LENGTH);
@@ -226,7 +226,7 @@ namspace SIM{
         return 0;
     }
     
-    int GSM::callUp(char *number)
+    int callUp(char *number)
     {
         if(0 != sendCmdAndWaitForResp("AT+COLP=1\r\n","OK",5)) {
             return -1;
@@ -236,13 +236,13 @@ namspace SIM{
         return 0;
     }
     
-    int GSM::answer(void)
+    int answer(void)
     {
         gprsSerial.printf("ATA\r\n");
         return 0;
     }
     
-    int GSM::loopHandle(void)
+    int loopHandle(void)
     {
         char gprsBuffer[100];
         int i;
@@ -296,57 +296,6 @@ namspace SIM{
             goto START;
         }
     }
-    
-    int GSM::networkInit(char* apn, char* userName, char* passWord)
-    {
-        char cstt[64];
-        snprintf(cstt,sizeof(cstt),"AT+CSTT=\"%s\",\"%s\",\"%s\"\r\n",apn,userName,passWord);
-        if(0 != sendCmdAndWaitForResp(cstt, "OK", DEFAULT_TIMEOUT)) {
-            return -1;
-        }
-        return 0;
-    }
-    
-    int GSM::connectTCP(char *ip, char *port)
-    {
-        char cipstart[64];
-    #if 0
-        if(0 != sendCmdAndWaitForResp("AT+CSTT=\"CMNET\",\"\",\"\"\r\n", "OK", 5)) {
-            return -1;
-        }
-    #endif
-        sprintf(cipstart, "AT+CIPSTART=\"TCP\",\"%s\",\"%s\"\r\n", ip, port);
-        if(0 != sendCmdAndWaitForResp(cipstart, "OK", DEFAULT_TIMEOUT)) {
-            return -1;
-        }
-        return 0;
-    }
-    int GSM::sendTCPData(char *data)
-    {
-        char cmd[64];
-        int len = strlen(data);
-        snprintf(cmd,sizeof(cmd),"AT+CIPSEND=%d\r\n",len);
-        if(0 != sendCmdAndWaitForResp(cmd,">",DEFAULT_TIMEOUT)) {
-            return -1;
-        }
-        if(0 != sendCmdAndWaitForResp(data,"OK",DEFAULT_TIMEOUT)) {
-            return -1;
-        }
-        return 0;
-    }
-    
-    int GSM::closeTCP(void)
-    {
-        sendCmd("AT+CIPCLOSE\r\n");
-        return 0;
-    }
-    
-    int GSM::shutTCP(void)
-    {
-        sendCmd("AT+CIPSHUT\r\n");
-        return 0;
-    }
-
 }
 
  

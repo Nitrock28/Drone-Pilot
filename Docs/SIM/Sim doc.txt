@@ -1,0 +1,15 @@
+3 types of command : 
+    AT<x><n> : basic, n is the parameters, can be omitted for default
+    ATS<n>=<m> : set a specific register to a value.m , can be omitted for default
+    extended : 
+        AT+<x>=<…> : Write command, sets the parameter to a given value
+        AT+<x>? : read command, returns the requested value
+        AT+<x>=? : gets available value range for the corresponding Write command
+        AT+<x> : execution command.
+
+commands can be grouped in the same message. only send AT at the start of the sentence (extended commands neet to be separated by semicolon) e.g. ATE1Q0S0=1S3=13V1X4;+IFC=0,0;+IPR=115200;&W. (556 charactersmax after AT)
+
+all commands start with AT and ends in <CR>. responses are given with <CR><LF><response><CR><LF>
+
+SMS : 
+    
