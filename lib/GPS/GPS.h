@@ -6,11 +6,14 @@
 
 namespace GPS
 {
-        void init(Serial& gpsBus);
+        void init(Serial* gpsBus);
 
         bool dataAvailable(void);
         void getData(int32_t* outputTable);
-        void RegisterTarget(int32_t* inputTable);
+        void RegisterHome(int32_t* inputTable);
+        void RegisterTarget(int targetNum, int nextTarget, int32_t* inputTable);
+        void activateNextTarget();
+        void getNav(uint32_t timeNow, int32_t* data);
 };
 
 #endif

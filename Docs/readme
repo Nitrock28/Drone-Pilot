@@ -1,0 +1,6 @@
+
+increase stm32f1c8t memory allocation : 
+bluepill usually have 128kb mem. to access everything with platformio, edit the file STM32F103XB.ld in
+~/.platformio/packages/framework-mbed/targets/TARGET_STM/TARGET_STM32F1/TARGET_BLUEPILL_F103C8/device/TOOLCHAIN_GCC_ARM
+
+and replace 64k with 128k at the beginning.

@@ -74,7 +74,7 @@ void loop()
 
 	////one char per loop, must check if fast enough
 	if(Serial.available() > 0)
-		gps.encode(Serial.read());
+		char a = (Serial.read());
 
 	// read all the channels values if available
 	// check shared update flags to see if any channels have a new signal
@@ -97,23 +97,6 @@ void loop()
 	}
 	SREG = sreg;
 
-	//from -1;+1 range to 2000 - 4000
-	uint16_t microRudder = 1500 + 500 * (int)rudder;
-	int microElev = 1500 + 500 * (int)elev;
-	int microAil1 = 1500 + 500 * (int)ail;
-	int microAil2 = microAil1; // both servos ar in the same direction to generate roll
-	
-	//throttle
-	setServoChannel(SERVO_THROTTLE, throttle*2000.0 + 2000.0);
-
-	setServoChannel(SERVO_AIL_LEFT, ail*1000.0 + 3000.0);
-	setServoChannel(SERVO_AIL_RIGHT, -ail*1000.0 + 3000.0);
-
-	setServoChannel(SERVO_ELEV, elev*1000.0 + 3000.0);
-
-	setServoChannel(SERVO_RUDD, rudder*1000.0 + 3000.0);
-
-
 	return;
 
 }
@@ -124,9 +107,9 @@ void AttachPortC() {
 	for (uint8_t i = 0; i < INPUT_COUNT; i++)
 	{
 		// set pins as input
-		DDRC ^= INPUT_STARTMASK<<i;
+		DDRC &= ~(INPUT_STARTMASK<<i);
 		//disable pullups
-		PORTC ^= INPUT_STARTMASK<<i;
+		PORTC &= ~(INPUT_STARTMASK<<i);
 		//enable pinchange interrupt on the pin
 		PCMSK1 |= INPUT_STARTMASK<<i;
 	}
@@ -168,7 +151,7 @@ void ServosBegin()
 	{
 		ServoPulseWidths[i] = SERVO_DEF_TICKS; // center
 		SERVOS_DDR|= (SERVOS_STARTMASK << i); // set as output
-		SERVOS_PORT ^= (SERVOS_STARTMASK << i); //set to low
+		SERVOS_PORT &= ~(SERVOS_STARTMASK << i); //set to low
 	}
 	servoState=0;
 	ServoCurrentChannel = 0;
@@ -216,7 +199,7 @@ ISR(TIMER1_COMPA_vect)
 
 	if (servoState){
 		// servo pin is high, set it low
-		SERVOS_PORT ^= (SERVOS_STARTMASK << ServoCurrentChannel);
+		SERVOS_PORT &= ~(SERVOS_STARTMASK << ServoCurrentChannel);
 		ServoCurrentChannel+=1;
 		if (ServoCurrentChannel < SERVOS_COUNT){
 			OCR1A = timer+ 90; // 90 ticks is 45µs delay between channels.
@@ -233,7 +216,7 @@ ISR(TIMER1_COMPA_vect)
 		SERVOS_PORT |= (SERVOS_STARTMASK << ServoCurrentChannel);
 		if (ServoCurrentChannel == 0){
 			// we are starting the trame.
-			nextTrame = timer+40000 // each trame is 20 ms long
+			nextTrame = timer+40000; // each trame is 20 ms long
 		}
 		// set the duration of the output pulse
 		OCR1A = timer + ServoPulseWidths[ServoCurrentChannel];

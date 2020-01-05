@@ -1,7 +1,8 @@
+
 #include <mbed.h>
 #include "GPS.h"
 
-namspace GPS{
+namespace GPS{
 
     namespace{
         volatile bool seenFirst;
@@ -11,7 +12,7 @@ namspace GPS{
         volatile unsigned int MSGLength;
         volatile unsigned int MSGIndex;
         volatile uint16_t messageType;
-        Serial& _gps;
+        Serial* _ser;
         volatile uint8_t buffer[40]; //40 bytes max
         volatile uint8_t posBuf[29]; 
         volatile uint8_t velBuf[37];
@@ -26,7 +27,7 @@ namspace GPS{
         
 
         void RXCallback(void){
-            uint8_t byteIn = _gps.getc();
+            uint8_t byteIn = _ser->getc();
             if (byteIn==0xB5){
                 seenFirst = true;
                 if(msgStep ==0)
@@ -123,7 +124,7 @@ namspace GPS{
             float dlat = (float)(targetLat-currentLat);
             float dlon = (float)(targetLon-currentLon);
             
-            float meanLat = ((float)(currentLat+targetLat))*0.5f
+            float meanLat = ((float)(currentLat+targetLat))*0.5f;
             float dlonscaled = dlon*cos(meanLat*DEG2RAD*1.0e-7f);// using scaling at origin
             float angleF = atan2f(dlonscaled,dlat)*1e5*RAD2DEG;// in 1e-5 degrees [-18000000;18000000]
             float distF = sqrt(dlonscaled*dlonscaled+dlat*dlat)*DEG2RAD*6.372795e2f; // scale by earth radius and degree-7 conversion -> mm
@@ -133,8 +134,8 @@ namspace GPS{
         }
     }
 
-    void init(Serial& gpsBus){
-        _gps = gpsBus
+    void init(Serial* gpsBus){
+        _ser = gpsBus;
         TargetIndex=1;
         TotalTargets=1;
 
@@ -143,31 +144,31 @@ namspace GPS{
         }
         velBuf[36] = 0;
         posBuf[28] = 0;
-        _gps.baud(9600);
-        _gps.format(8,mbed::SerialBase::None, 1);//8 bits par send, no parity check, 1 stop bit.
+        _ser->baud(9600);
+        _ser->format(8,mbed::SerialBase::None, 1);//8 bits par send, no parity check, 1 stop bit.
 
         // delete all NMEA messages
-        _gps.printf("$PUBX,40,GBS,0,0,0,0,0,0*4D\r\n");
-        _gps.printf("$PUBX,40,VTG,0,0,0,0,0,0*5E\r\n");
-        _gps.printf("$PUBX,40,GLL,0,0,0,0,0,0*5C\r\n");
-        _gps.printf("$PUBX,40,GSA,0,0,0,0,0,0*4E\r\n");
-        _gps.printf("$PUBX,40,GSV,0,0,0,0,0,0*59\r\n");
-        _gps.printf("$PUBX,40,GGA,0,0,0,0,0,0*5A\r\n");
-        _gps.printf("$PUBX,40,RMC,0,0,0,0,0,0*47\r\n");
+        _ser->printf("$PUBX,40,GBS,0,0,0,0,0,0*4D\r\n");
+        _ser->printf("$PUBX,40,VTG,0,0,0,0,0,0*5E\r\n");
+        _ser->printf("$PUBX,40,GLL,0,0,0,0,0,0*5C\r\n");
+        _ser->printf("$PUBX,40,GSA,0,0,0,0,0,0*4E\r\n");
+        _ser->printf("$PUBX,40,GSV,0,0,0,0,0,0*59\r\n");
+        _ser->printf("$PUBX,40,GGA,0,0,0,0,0,0*5A\r\n");
+        _ser->printf("$PUBX,40,RMC,0,0,0,0,0,0*47\r\n");
 
         //setup 1Hz UBX binary messages for position and speed.
         uint8_t setup1[]={0xB5, 0x62, 0x06, 0x01, 0x08, 0x00, 0x01, 0x02, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x13, 0xBE};
         for (int i = 0; i<16;i++){
-            _gps.putc(setup1[i]);
+            _ser->putc(setup1[i]);
         }
         wait(0.001);
         uint8_t setup2[]={0xB5, 0x62, 0x06, 0x01, 0x08, 0x00, 0x01, 0x12, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x23, 0x2E};
         for (int i = 0; i<16;i++){
-            _gps.putc(setup2[i]);
+            _ser->putc(setup2[i]);
         }
         msgStep=0;
         seenFirst=0;
-        _gps.attach(callback(&RXCallback),mbed::SerialBase::RxIrq);
+        _ser->attach(callback(&RXCallback),mbed::SerialBase::RxIrq);
     }
 
     
@@ -217,7 +218,7 @@ namspace GPS{
         targets[0][2]=inputTable[2];//altitude above sea level in mm
         targets[0][3]=0;// keep at home once RTH is activated.
 
-        int32_t[2] distHeading;
+        int32_t distHeading[2];
         distAndHeading(targets[0][0],targets[0][1],targets[1][0],targets[1][1],distHeading);
         neededHeading = distHeading[1];
     }
@@ -239,16 +240,16 @@ namspace GPS{
             targets[targetNum][2]=inputTable[2];//altitude above sea level in mm
             targets[targetNum][3] = nextTarget;//next target : -1 -> next target in the list. 0-(MAX_TARGET_NUM-1) selected target. -2 : landing at target.
             if(targetNum>=TotalTargets)
-                TotalTargets=targetNum+1
+                TotalTargets=targetNum+1;
         }
     }
 
 
     // 
     void activateNextTarget(){
-        int oldTarget = TargetIndex
+        unsigned int oldTarget = TargetIndex;
         if(TargetIndex!=0){
-            next = targets[TargetIndex][3];
+            int32_t next = targets[TargetIndex][3];
             if(next==-1){
                 TargetIndex++;
                 while (TargetIndex<MAX_TARGET_NUM && targets[TargetIndex][0]== ERR32);
@@ -264,7 +265,7 @@ namspace GPS{
             // all other cases (landing) keep the current target as is.
         }
         if (oldTarget != TargetIndex && TargetIndex!= 0){
-            int32_t[2] distHeading;
+            int32_t distHeading[2];
             distAndHeading(targets[oldTarget][0],targets[oldTarget][1],targets[TargetIndex][0],targets[TargetIndex][1],distHeading);
             neededHeading = distHeading[1];
             if(targets[TargetIndex][2]==targets[oldTarget][2])
@@ -312,15 +313,14 @@ namspace GPS{
             posBuf[28]=0;
             velBuf[36]=0;
 
-
-            int32_t[2] distHeading;
+            int32_t distHeading[2];
             distAndHeading(data[0],data[1],targets[TargetIndex][0],targets[TargetIndex][1],distHeading);
             data[6] = distHeading[0];
 
             if(TargetIndex==0){
                 //RTH mode, aim at target.
                 data[7]=data[5]-distHeading[1];
-                data[9]=1
+                data[9]=1;
             }
             else{
                 
@@ -342,9 +342,9 @@ namspace GPS{
                     data[7]=data[5]-distHeading[1];
                 }
                 if(targets[TargetIndex][3]==-2)
-                    data[9]=2
+                    data[9]=2;
                 else
-                    data[9]=0
+                    data[9]=0;
 
             }
 
@@ -357,12 +357,12 @@ namspace GPS{
             if(distHeading[0]>legDist){
                 distHeading[0] = legDist;
             }
-            data[8] = (targets[TargetIndex][2]-distHeading[0]/slopeInv)-data[2]
+            data[8] = (targets[TargetIndex][2]-distHeading[0]/slopeInv)-data[2];
             lastTimedata = timeNow;
         }
         else{
             if((timeNow-lastTimedata)>MAX_MICROS_NO_DATA)
-                outpuTable[8]=-1 // failsafe mode
+                data[9]=-1; // failsafe mode
         }
         // in case no data is available, do not change anything in the table, this allows this function to be called asynchronously
     }

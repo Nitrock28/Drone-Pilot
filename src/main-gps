@@ -4,22 +4,33 @@
 Serial pc(A9, A10,9600);  // tx, rx
 Serial gpsSer(B10, B11,9600);  // tx, rx
 DigitalOut led(C13,0);
-GPS gps(gpsSer,led);
+uint32_t CLKH = 0, CLKL=0, old=0;
 
-
+//gets the time in µs since startup, must be called at least every 30 ms. 
+//Loops every 1h 11m 35s
+inline unsigned int getTime(){
+    CLKL=us_ticker_read();
+    if(CLKL<old){
+        CLKH+=0x00010000;
+    }
+    old=CLKL;
+    return(CLKH|CLKL);
+}
 
 int main() {
-    gps.init();
+    GPS::init(&gpsSer);
     wait(1);
     int32_t targ[] =  {507696740, 29835710,500000};
-    gps.RegisterTarget(targ);
-    int32_t gpsOutput[7]={0,0,0,0,0,0,0};
+    GPS::RegisterHome(targ);
+    targ[0] =  507800000;
+    GPS::RegisterTarget(1,-1,targ);
+    int32_t gpsOutput[10];
     pc.printf("Hello World!\r\n");
     while(1) {
         led = !led;
-        if(gps.dataAvailable()){
+        if(GPS::dataAvailable()){
             int a = us_ticker_read();
-            gps.getData(gpsOutput);
+            GPS::getData(gpsOutput);
             int b = us_ticker_read();
             pc.printf("data from gps : %d, %d, %d,%d, %d, %d, %d... %d micros\r\n",gpsOutput[0],gpsOutput[1],gpsOutput[2],gpsOutput[3],gpsOutput[4],gpsOutput[5],gpsOutput[6],(b-a));
         }
