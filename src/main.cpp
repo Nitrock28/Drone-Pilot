@@ -6,17 +6,45 @@ Serial pc(A9, A10,9600);  // tx, rx
 int main() {
 
     pc.printf("Hello World!\r\n");
-    Servos::init(&pc);
-    // PortIn servoPort = PortIn(PortName::PortA,0b1111);
-    // pc.printf("b\r\n");
-    // servoPort.mode(PinMode::PullNone);
-    // pc.printf("c\r\n");
+    Servos::init();
 
+    char buffer[50];
+    bool hold = false;
+    int servoVal=1500;
     while(1) {
+        int pos = 0;
+        while(pc.readable()){
+            buffer[pos++]=pc.getc();
+        }
+        if(pos>0){
+            if(buffer[0]=='h'){
+                hold=true;
+                continue;
+            }
 
-        pc.printf("-- %d --\r\n",Servos::test());
-        // pc.printf("-- %d --\r\n",servoPort.read());
-        wait_ms(500);
+            if(buffer[0]=='d'){
+                hold=false;
+                continue;
+            }
+            int chan = atoi(buffer);
+            pc.printf("%d\n",chan);
+            if(chan>999 && chan<2001){
+                servoVal=chan;
+                Servos::setChannelMicros(Servos::Channel::throttle,servoVal);
+                Servos::setChannelMicros(Servos::Channel::ailLeft,servoVal);
+                Servos::setChannelMicros(Servos::Channel::ailRight,servoVal);
+                Servos::setChannelMicros(Servos::Channel::Aux,servoVal);
+                wait_us(19000);
+                Servos::startAllPulses();
+
+            }
+        }
+
+        wait_us(19000);
+
+        if(hold)
+            Servos::startAllPulses();
+
     }
 }
 
