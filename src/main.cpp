@@ -1,46 +1,60 @@
 #include <mbed.h>
 #include "Servos.h"
 
-Serial pc(A9, A10,9600);  // tx, rx
+Serial pc(A9, A10,115200);  // tx, rx
 
 int main() {
 
-    pc.printf("Hello World!\r\n");
+    pc.printf("Hello World!\n");
     Servos::init();
+    pc.printf("init\n");
 
     char buffer[50];
     bool hold = false;
     int servoVal=1500;
+    bool msgOk=false;
+    int pos = 0;
     while(1) {
-        int pos = 0;
-        while(pc.readable()){
-            buffer[pos++]=pc.getc();
+        // can only read 1 character at the time...
+
+        if(pc.readable()){
+            buffer[pos]=pc.getc();
+            if(buffer[pos]=='.'){
+                buffer[pos]='\0';
+                msgOk=true;
+                pos = 0;
+            }
+            else
+                pos++;
         }
-        if(pos>0){
+        if(msgOk){
+            msgOk=false;
             if(buffer[0]=='h'){
+                pc.printf("hold\n"); 
                 hold=true;
                 continue;
             }
 
             if(buffer[0]=='d'){
+                pc.printf("no hold\n"); 
                 hold=false;
                 continue;
             }
             int chan = atoi(buffer);
-            pc.printf("%d\n",chan);
-            if(chan>999 && chan<2001){
+            
+            if(chan>500 && chan<2500){
                 servoVal=chan;
+                pc.printf("%d\n",servoVal);
                 Servos::setChannelMicros(Servos::Channel::throttle,servoVal);
                 Servos::setChannelMicros(Servos::Channel::ailLeft,servoVal);
                 Servos::setChannelMicros(Servos::Channel::ailRight,servoVal);
                 Servos::setChannelMicros(Servos::Channel::Aux,servoVal);
                 wait_us(19000);
                 Servos::startAllPulses();
-
             }
         }
 
-        wait_us(19000);
+        wait_us(5000);
 
         if(hold)
             Servos::startAllPulses();

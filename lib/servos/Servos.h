@@ -6,13 +6,14 @@
 
 namespace Servos
 {
-        enum Channel { throttle=0, ailLeft=1, ailRight=2, Aux=3 };
+        enum Channel { throttle=0, Aux=1, ailLeft=2, ailRight=3};
 
         // init the servos connections, servos are connected as follows:
         //  B3 : throttle
-        //  B4 : ailLeft
-        //  B5 : ailRight
-        //  B6 : aux
+        //  B4 : aux
+        //  B5 : ailLeft
+        //  B6 : ailRight
+        // (servos normally accept 3.3V signals)
         void init();
         
         
